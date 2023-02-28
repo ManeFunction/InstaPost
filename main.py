@@ -13,7 +13,7 @@ load_dotenv()
 login = os.environ.get("LOGIN")
 passw = os.environ.get("PASS")
 hashtags = os.environ.get("HASHTAGS")
-images_dir = os.environ.get("PATH")
+images_dir = os.environ.get("IMAGES_PATH")
 repeat_time = int(os.environ.get("TIME"))
 
 def upload():
