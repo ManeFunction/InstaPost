@@ -16,14 +16,6 @@ hashtags = os.environ.get("HASHTAGS")
 images_dir = os.environ.get("IMAGES_PATH")
 repeat_time = int(os.environ.get("TIME"))
 
-def upload():
-	# try to get a random image and upload it
-	if os.listdir(images_dir):
-		image = images_dir + random.choice(os.listdir(images_dir))
-		bot = Bot()
-		bot.login(username = login, password = passw)
-		bot.upload_photo(image, caption = hashtags)
-
 def pre_clean_up():
 	dir = "config"
 	# checking whether config folder exists or not
@@ -34,6 +26,17 @@ def pre_clean_up():
 		except OSError as e:
 			print("Error: %s - %s." % (e.filename, e.strerror))
 
+# login to instagram
+pre_clean_up()
+bot = Bot()
+bot.login(username = login, password = passw)
+
+def upload():
+	# try to get a random image and upload it
+	if os.listdir(images_dir):
+		image = images_dir + random.choice(os.listdir(images_dir))
+		bot.upload_photo(image, caption = hashtags)
+
 def post_clean_up():
 	# remove already uploaded pictures to prevent duplicates
 	for file in os.listdir(images_dir):
@@ -41,7 +44,6 @@ def post_clean_up():
 			os.remove(images_dir + file)
 
 def job():
-	pre_clean_up()
 	upload()
 	post_clean_up()
 	
