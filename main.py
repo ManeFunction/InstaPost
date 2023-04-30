@@ -1,53 +1,60 @@
-import os
-import shutil
-import fnmatch
-import random
-import time
-from dotenv import load_dotenv
-from instabot import Bot
+from instagrapi import Client  # A Python library for Instagram API
+from dotenv import load_dotenv  # Parameters environment
+import os  # A module for interacting with the operating system
+import random  # A module for generating random numbers
+import time  # A module for working with time
 
 # set up environment
 load_dotenv()
 
 # load config
 login = os.environ.get("LOGIN")
-passw = os.environ.get("PASS")
+password = os.environ.get("PASS")
 hashtags = os.environ.get("HASHTAGS")
 images_dir = os.environ.get("IMAGES_PATH")
 repeat_time = int(os.environ.get("TIME"))
 
-def pre_clean_up():
-	dir = "config"
-	# checking whether config folder exists or not
-	if os.path.exists(dir):
-		try:
-			# removing it because in 2021 it makes problems with new uploads
-			shutil.rmtree(dir)
-		except OSError as e:
-			print("Error: %s - %s." % (e.filename, e.strerror))
+# Creating an instance of the Client class
+cl = Client()
 
-# login to instagram
-pre_clean_up()
-bot = Bot()
-bot.login(username = login, password = passw)
+# Logging in to Instagram with your username and password
+print("Logging in...")
+cl.login(login, password)
+print("Logged in as ", login)
 
-def upload():
-	# try to get a random image and upload it
-	if os.listdir(images_dir):
-		image = images_dir + random.choice(os.listdir(images_dir))
-		bot.upload_photo(image, caption = hashtags)
+# Creating an infinite loop
+while True:
+    # Getting the list of files in the folder
+    files = os.listdir(images_dir)
+    print("Total files: ", len(files))
 
-def post_clean_up():
-	# remove already uploaded pictures to prevent duplicates
-	for file in os.listdir(images_dir):
-		if fnmatch.fnmatch(file, '*REMOVE_ME'):
-			os.remove(images_dir + file)
+    # Choosing a random file from the list
+    file = random.choice(files)
+    print("Selected file: ", file)
 
-def job():
-	upload()
-	post_clean_up()
-	
-if __name__ == '__main__':
-	while True:
-		job()
-		time.sleep(repeat_time)
+    # Getting the full path of the file
+    file_path = os.path.join(images_dir, file)
+
+    # If the file is PNG, convert it to JPG
+    if file.endswith(".png"):
+        print("Converting PNG to JPG...")
+        os.system(f"magick convert {file_path} {file_path[:-4]}.jpg")
+        os.remove(file_path)
+        file_path = file_path[:-4] + ".jpg"
+        print("Converted to JPG")
+
+    # Uploading the file as a post with a caption
+    cl.photo_upload(file_path, caption=hashtags)
+    print("Uploaded")
+
+    # Deleting the file from the folder
+    os.remove(file_path)
+
+    # Stop the script if there are no files left
+    if len(files) == 1:
+        print("No files left. Stopping...")
+        break
+
+    # Waiting for 8 hours (in seconds)
+    print("Waiting...")
+    time.sleep(repeat_time)
