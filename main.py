@@ -2,7 +2,7 @@ from instagrapi import Client  # A Python library for Instagram API
 from PIL import Image  # A Python library for working with images
 from dotenv import load_dotenv  # Parameters environment
 import os  # A module for interacting with the operating system
-import glob # A module for working with files
+import glob  # A module for working with files
 import random  # A module for generating random numbers
 import time  # A module for working with time
 
@@ -31,43 +31,95 @@ while True:
         print(f"Failed to log in. Trying again in {login_time} seconds...")
         time.sleep(login_time)
 
-# Creating an infinite loop
-while True:
-    # Getting the list of images in the folder
-    extensions = ['*.png', '*.jpg', '*.jpeg']
-    files = [f for ext in extensions for f in glob.glob(os.path.join(images_dir, ext))]
-    print("Total files: ", len(files))
+# Pre-define some variables and methods
+extensions = ['*.png', '*.jpg', '*.jpeg']
+tags_filename = "tags.txt"
+no_images_message = "No files left. Abort."
 
-    # Choosing a random file from the list
-    file = random.choice(files)
-    print("Selected file: ", file)
+
+def get_images_at(path) -> list:
+    result = [f for ext in extensions for f in glob.glob(os.path.join(path, ext))]
+    return result
+
+
+def try_post_image_from(path):
+    # Choosing a random file from the subfolder
+    images_list = get_images_at(path)
+    image = random.choice(images_list)
+    print("Selected file: ", image)
 
     # Getting the full path of the file
-    file_path = os.path.join(images_dir, file)
+    image_path = os.path.join(path, image)
 
     # If the file is PNG, convert it to JPG
-    if file.endswith(".png"):
+    if image.endswith(".png"):
         print("Converting PNG to JPG...")
-        png_image = Image.open(file_path)
+        png_image = Image.open(image_path)
         rgb_image = png_image.convert('RGB')
-        output_file_path = file_path[:-4] + ".jpg"
+        output_file_path = image_path[:-4] + ".jpg"
         rgb_image.save(output_file_path, quality=100)
-        os.remove(file_path)
-        file_path = output_file_path
+        os.remove(image_path)
+        image_path = output_file_path
         print("Converted to JPG")
 
+    # Manage hashtags
+    caption = hashtags
+    tags_path = os.path.join(path, tags_filename)
+    if os.path.isfile(tags_path):
+        with open(tags_path, "r") as f:
+            content = f.read()
+            caption += ' '
+            caption += content
+
     # Uploading the file as a post with a caption
-    cl.photo_upload(file_path, caption=hashtags)
+    cl.photo_upload(image_path, caption=caption)
     print("Uploaded")
 
     # Deleting the file from the folder
-    os.remove(file_path)
+    os.remove(image_path)
 
-    # Stop the script if there are no files left
-    if len(files) == 1:
-        print("No files left. Stopping...")
-        break
 
-    # Waiting for 8 hours (in seconds)
+# >>> MAIN LOOP <<<
+while True:
+    # Getting the list of subfolders and build the map
+    subfolders = [f.path for f in os.scandir(images_dir) if f.is_dir()]
+
+    # One root folder logic
+    if len(subfolders) == 0:
+        images = get_images_at(images_dir)
+        total = len(images)
+
+        # Keep the cycle running even if there are no files in the folder
+        # to prevent painful re-logging operation
+        if total == 0:
+            print(no_images_message)
+        else:
+            # Posting image from the root folder
+            try_post_image_from(images_dir)
+
+    # Subfolders logic
+    else:
+        images_map = {}
+        for subfolder in subfolders:
+            files = get_images_at(subfolder)
+            images_map[subfolder] = len(files)
+
+        # Calculate total number of images left
+        total = sum(images_map.values())
+
+        # Keep the cycle running even if there are no files in the folder
+        # to prevent painful re-logging operation
+        if total == 0:
+            print(no_images_message)
+        else:
+            # Choosing a random subfolder with actual images
+            non_empty_subfolders = [key for key, value in images_map.items() if value != 0]
+            category = random.choice(non_empty_subfolders)
+            print("Selected category: ", os.path.basename(os.path.normpath(category)))
+
+            # Posting image from the selected category
+            try_post_image_from(category)
+
+    # Waiting for some time (in seconds)
     print(f"Waiting {repeat_time} seconds...")
     time.sleep(repeat_time)
