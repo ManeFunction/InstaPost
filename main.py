@@ -1,4 +1,5 @@
 from instagrapi import Client  # A Python library for Instagram API
+from PIL import Image  # A Python library for working with images
 from dotenv import load_dotenv  # Parameters environment
 import os  # A module for interacting with the operating system
 import random  # A module for generating random numbers
@@ -38,9 +39,12 @@ while True:
     # If the file is PNG, convert it to JPG
     if file.endswith(".png"):
         print("Converting PNG to JPG...")
-        os.system(f"magick convert {file_path} {file_path[:-4]}.jpg")
+        png_image = Image.open(file_path)
+        rgb_image = png_image.convert('RGB')
+        output_file_path = file_path[:-4] + ".jpg"
+        rgb_image.save(output_file_path, quality=100)
         os.remove(file_path)
-        file_path = file_path[:-4] + ".jpg"
+        file_path = output_file_path
         print("Converted to JPG")
 
     # Uploading the file as a post with a caption
