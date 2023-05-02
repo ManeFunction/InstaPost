@@ -81,7 +81,7 @@ def try_post_image_from(path):
 
 # >>> MAIN LOOP <<<
 while True:
-    # Getting the list of subfolders and build the map
+    # Getting the list of subfolders
     subfolders = [f.path for f in os.scandir(images_dir) if f.is_dir()]
 
     # One root folder logic
@@ -99,6 +99,7 @@ while True:
 
     # Subfolders logic
     else:
+        # Build up the map
         images_map = {}
         for subfolder in subfolders:
             files = get_images_at(subfolder)
