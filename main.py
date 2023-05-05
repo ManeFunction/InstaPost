@@ -99,6 +99,7 @@ while True:
     if len(subfolders) == 0:
         images = get_images_at(images_dir)
         total = len(images)
+        print(f"Total number of images left: {total - 1}")
 
         # Keep the cycle running even if there are no files in the folder
         # to prevent painful re-logging operation
@@ -118,6 +119,7 @@ while True:
 
         # Calculate total number of images left
         total = sum(images_map.values())
+        print(f"Total number of images left: {total - 1}")
 
         # Keep the cycle running even if there are no files in the folder
         # to prevent painful re-logging operation
@@ -128,6 +130,7 @@ while True:
             non_empty_subfolders = [key for key, value in images_map.items() if value != 0]
             category = random.choice(non_empty_subfolders)
             print("Selected category: ", os.path.basename(os.path.normpath(category)))
+            print(f"Number of images left in the category: {images_map[category] - 1}")
 
             # Posting image from the selected category
             try_post_image_from(category)
