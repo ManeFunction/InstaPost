@@ -15,26 +15,21 @@ password = os.environ.get("PASS")
 hashtags = os.environ.get("HASHTAGS")
 images_dir = os.environ.get("IMAGES_PATH")
 repeat_time = int(os.environ.get("POST_DELAY"))
+repeat_window = int(os.environ.get("POST_WINDOW"))
 login_time = int(os.environ.get("LOGIN_DELAY"))
-
-# Creating an instance of the Client class
-cl = Client()
-
-# Logging in cycle (trying to log in until successful)
-while True:
-    try:
-        print("Logging in...")
-        cl.login(login, password)
-        print("Logged in as", login)
-        break
-    except:
-        print(f"Failed to log in. Trying again in {login_time} seconds...")
-        time.sleep(login_time)
+login_window = int(os.environ.get("LOGIN_WINDOW"))
 
 # Pre-define some variables and methods
 extensions = ['*.png', '*.jpg', '*.jpeg']
 tags_filename = "tags.txt"
 no_images_message = "No files left. Abort."
+
+
+def get_random_time_window(target_time, window) -> int:
+    result_time = target_time
+    if window > 0:
+        result_time = random.randint(target_time - window, target_time + window)
+    return result_time
 
 
 def get_images_at(path) -> list:
@@ -77,6 +72,22 @@ def try_post_image_from(path):
 
     # Deleting the file from the folder
     os.remove(image_path)
+
+
+# Creating an instance of the Client class
+cl = Client()
+
+# Logging in cycle (trying to log in until successful)
+while True:
+    try:
+        print("Logging in...")
+        cl.login(login, password)
+        print("Logged in as", login)
+        break
+    except:
+        t = get_random_time_window(login_time, login_window)
+        print(f"Failed to log in. Trying again in {t} seconds...")
+        time.sleep(t)
 
 
 # >>> MAIN LOOP <<<
@@ -122,5 +133,6 @@ while True:
             try_post_image_from(category)
 
     # Waiting for some time (in seconds)
-    print(f"Waiting {repeat_time} seconds...")
-    time.sleep(repeat_time)
+    t = get_random_time_window(repeat_time, repeat_window)
+    print(f"Waiting {t} seconds...")
+    time.sleep(t)
