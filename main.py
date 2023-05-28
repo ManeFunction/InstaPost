@@ -46,7 +46,7 @@ def get_images_at(path) -> list:
     return result
 
 
-def try_post_image_from(path) -> string:
+def try_post_image_from(path) -> str:
     # Choosing a random file from the subfolder
     images_list = get_images_at(path)
     image = random.choice(images_list)
