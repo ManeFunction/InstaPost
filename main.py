@@ -163,7 +163,7 @@ while True:
 
             # Posting image from the selected category
             post_url = try_post_image_from(category)
-            log_to_telegram(f"**{login}**: New image was posted!\nCategory: {category_name}\nImages left: {images_in_category_left}({total_images_left})\n{post_url}")
+            log_to_telegram(f"**{login}**: New image was posted!\nCategory: {category_name}\nImages left: {images_in_category_left} ({total_images_left})\n{post_url}")
 
     # Waiting for some time (in seconds)
     t = get_random_time_window(repeat_time, repeat_window)
