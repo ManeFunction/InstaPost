@@ -77,13 +77,14 @@ def try_post_image_from(path) -> str:
 
     # Uploading the file as a post with a caption
     media = cl.photo_upload(image_path, caption=caption)
-    post_url = media.url
+    media_code = media.dict().get("code")
+    url = f"https://www.instagram.com/p/{media_code}/"
     print("Uploaded")
 
     # Deleting the file from the folder
     os.remove(image_path)
 
-    return post_url
+    return url
 
 
 async def log_to_telegram(message):
