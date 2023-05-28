@@ -5,6 +5,9 @@ import os  # A module for interacting with the operating system
 import glob  # A module for working with files
 import random  # A module for generating random numbers
 import time  # A module for working with time
+from telethon import TelegramClient  # A Python library for Telegram API
+from telethon.sessions import StringSession  # A module for working with Telegram sessions
+import asyncio  # A module for asynchronous execution of code
 
 # set up environment
 load_dotenv()
@@ -14,10 +17,16 @@ login = os.environ.get("LOGIN")
 password = os.environ.get("PASS")
 hashtags = os.environ.get("HASHTAGS")
 images_dir = os.environ.get("IMAGES_PATH")
+
 repeat_time = int(os.environ.get("POST_DELAY"))
 repeat_window = int(os.environ.get("POST_WINDOW"))
 login_time = int(os.environ.get("LOGIN_DELAY"))
 login_window = int(os.environ.get("LOGIN_WINDOW"))
+
+tgid = os.environ.get("APPID")
+tghash = os.environ.get("APIHASH")
+tg_session_string = os.environ.get("SESSION_STRING")
+log_tg_channel = int(os.environ.get("LOG_TG_CHANNEL"))
 
 # Pre-define some variables and methods
 extensions = ['*.png', '*.jpg', '*.jpeg']
@@ -37,7 +46,7 @@ def get_images_at(path) -> list:
     return result
 
 
-def try_post_image_from(path):
+def try_post_image_from(path) -> string:
     # Choosing a random file from the subfolder
     images_list = get_images_at(path)
     image = random.choice(images_list)
@@ -67,11 +76,19 @@ def try_post_image_from(path):
             caption += content
 
     # Uploading the file as a post with a caption
-    cl.photo_upload(image_path, caption=caption)
+    media = cl.photo_upload(image_path, caption=caption)
+    post_url = media.url
     print("Uploaded")
 
     # Deleting the file from the folder
     os.remove(image_path)
+
+    return post_url
+
+
+async def log_to_telegram(message):
+    async with TelegramClient(StringSession(session_string), appid, apihash) as client:
+        await client.send_message(log_channel, message)
 
 
 # Creating an instance of the Client class
@@ -99,15 +116,18 @@ while True:
     if len(subfolders) == 0:
         images = get_images_at(images_dir)
         total = len(images)
-        print(f"Total number of images left: {total - 1}")
+        total_images_left = total - 1
+        print(f"Total number of images left: {total_images_left}")
 
         # Keep the cycle running even if there are no files in the folder
         # to prevent painful re-logging operation
         if total == 0:
             print(no_images_message)
+            log_to_telegram(f"**{login}**: {no_images_message}")
         else:
             # Posting image from the root folder
-            try_post_image_from(images_dir)
+            post_url = try_post_image_from(images_dir)
+            log_to_telegram(f"**{login}**: New image was posted!\nImages left: {total_images_left}\n{post_url}")
 
     # Subfolders logic
     else:
@@ -119,21 +139,26 @@ while True:
 
         # Calculate total number of images left
         total = sum(images_map.values())
-        print(f"Total number of images left: {total - 1}")
+        total_images_left = total - 1
+        print(f"Total number of images left: {total_images_left}")
 
         # Keep the cycle running even if there are no files in the folder
         # to prevent painful re-logging operation
         if total == 0:
             print(no_images_message)
+            log_to_telegram(f"**{login}**: {no_images_message}")
         else:
             # Choosing a random subfolder with actual images
             non_empty_subfolders = [key for key, value in images_map.items() if value != 0]
             category = random.choice(non_empty_subfolders)
-            print("Selected category: ", os.path.basename(os.path.normpath(category)))
-            print(f"Number of images left in the category: {images_map[category] - 1}")
+            category_name = os.path.basename(os.path.normpath(category))
+            images_in_category_left = images_map[category] - 1
+            print("Selected category: ", category_name)
+            print(f"Number of images left in the category: {images_in_category_left}")
 
             # Posting image from the selected category
-            try_post_image_from(category)
+            post_url = try_post_image_from(category)
+            log_to_telegram(f"**{login}**: New image was posted!\nCategory: {category_name}\nImages left: {images_in_category_left}({total_images_left})\n{post_url}")
 
     # Waiting for some time (in seconds)
     t = get_random_time_window(repeat_time, repeat_window)
