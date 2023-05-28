@@ -87,9 +87,13 @@ def try_post_image_from(path) -> str:
     return url
 
 
-async def log_to_telegram(message):
+async def create_telegram_message(message):
     async with TelegramClient(StringSession(tg_session_string), tgid, tghash) as client:
         await client.send_message(log_tg_channel, message)
+
+
+def log_to_telegram(message):
+    asyncio.run(create_telegram_message(message))
 
 
 # Creating an instance of the Client class
