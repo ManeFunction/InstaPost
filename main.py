@@ -46,7 +46,7 @@ def get_images_at(path) -> list:
     return result
 
 
-def try_post_image_from(path) -> str:
+def try_post_image_from(path) -> (str, str):
     # Choosing a random file from the subfolder
     images_list = get_images_at(path)
     image = random.choice(images_list)
@@ -81,19 +81,26 @@ def try_post_image_from(path) -> str:
     url = f"https://www.instagram.com/p/{media_code}/"
     print("Uploaded")
 
-    # Deleting the file from the folder
-    os.remove(image_path)
-
-    return url
+    return url, image_path
 
 
-async def create_telegram_message(message):
+async def send_telegram_message(message):
     async with TelegramClient(StringSession(tg_session_string), tgid, tghash) as client:
         await client.send_message(log_tg_channel, message)
 
 
+async def send_telegram_file(message, file_path):
+    async with TelegramClient(StringSession(tg_session_string), tgid, tghash) as client:
+        await client.send_file(log_tg_channel, file_path, force_document=False, caption=message)
+        os.remove(image_path)
+
+
 def log_to_telegram(message):
-    asyncio.run(create_telegram_message(message))
+    asyncio.run(send_telegram_message(message))
+
+
+def log_to_telegram(message, file_path):
+    asyncio.run(send_telegram_file(message, file_path))
 
 
 # Creating an instance of the Client class
@@ -131,8 +138,8 @@ while True:
             log_to_telegram(f"**{login}**: {no_images_message}")
         else:
             # Posting image from the root folder
-            post_url = try_post_image_from(images_dir)
-            log_to_telegram(f"**{login}**: New image was posted!\nImages left: {total_images_left}\n{post_url}")
+            post_url, image_path = try_post_image_from(images_dir)
+            log_to_telegram(f"**{login}**: New image was posted!\nImages left: {total_images_left}\n{post_url}", image_path)
 
     # Subfolders logic
     else:
@@ -162,8 +169,8 @@ while True:
             print(f"Number of images left in the category: {images_in_category_left}")
 
             # Posting image from the selected category
-            post_url = try_post_image_from(category)
-            log_to_telegram(f"**{login}**: New image was posted!\nCategory: {category_name}\nImages left: {images_in_category_left} ({total_images_left})\n{post_url}")
+            post_url, image_path = try_post_image_from(category)
+            log_to_telegram(f"**{login}**: New image was posted!\nCategory: {category_name}\nImages left: {images_in_category_left} ({total_images_left})\n{post_url}", image_path)
 
     # Waiting for some time (in seconds)
     t = get_random_time_window(repeat_time, repeat_window)
