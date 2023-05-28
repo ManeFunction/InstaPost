@@ -87,8 +87,8 @@ def try_post_image_from(path) -> string:
 
 
 async def log_to_telegram(message):
-    async with TelegramClient(StringSession(session_string), appid, apihash) as client:
-        await client.send_message(log_channel, message)
+    async with TelegramClient(StringSession(tg_session_string), tgid, tghash) as client:
+        await client.send_message(log_tg_channel, message)
 
 
 # Creating an instance of the Client class
