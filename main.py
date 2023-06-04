@@ -75,6 +75,11 @@ def try_post_image_from(path) -> (str, str):
             caption += ' '
             caption += content
 
+    # randomize hashtags to prevent instagram auto-posting detection
+    split = caption.split(' ')
+    random.shuffle(split)
+    caption = ' '.join(split)
+
     # Uploading the file as a post with a caption
     media = cl.photo_upload(selected_image_path, caption=caption)
     media_code = media.dict().get("code")
