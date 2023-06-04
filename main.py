@@ -53,17 +53,17 @@ def try_post_image_from(path) -> (str, str):
     print("Selected file: ", image)
 
     # Getting the full path of the file
-    image_path = os.path.join(path, image)
+    selected_image_path = os.path.join(path, image)
 
     # If the file is PNG, convert it to JPG
     if image.endswith(".png"):
         print("Converting PNG to JPG...")
-        png_image = Image.open(image_path)
+        png_image = Image.open(selected_image_path)
         rgb_image = png_image.convert('RGB')
-        output_file_path = image_path[:-4] + ".jpg"
+        output_file_path = selected_image_path[:-4] + ".jpg"
         rgb_image.save(output_file_path, quality=100)
-        os.remove(image_path)
-        image_path = output_file_path
+        os.remove(selected_image_path)
+        selected_image_path = output_file_path
         print("Converted to JPG")
 
     # Manage hashtags
@@ -76,12 +76,12 @@ def try_post_image_from(path) -> (str, str):
             caption += content
 
     # Uploading the file as a post with a caption
-    media = cl.photo_upload(image_path, caption=caption)
+    media = cl.photo_upload(selected_image_path, caption=caption)
     media_code = media.dict().get("code")
     url = f"https://www.instagram.com/p/{media_code}/"
     print("Uploaded")
 
-    return url, image_path
+    return url, selected_image_path
 
 
 async def send_telegram_message(message):
