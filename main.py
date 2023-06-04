@@ -8,6 +8,8 @@ import time  # A module for working with time
 from telethon import TelegramClient  # A Python library for Telegram API
 from telethon.sessions import StringSession  # A module for working with Telegram sessions
 import asyncio  # A module for asynchronous execution of code
+import signal  # A module for working with system signals
+import subprocess  # A module for working with subprocesses
 
 # set up environment
 load_dotenv()
@@ -32,6 +34,16 @@ log_tg_channel = int(os.environ.get("LOG_TG_CHANNEL"))
 extensions = ['*.png', '*.jpg', '*.jpeg']
 tags_filename = "tags.txt"
 no_images_message = "No files left. Abort."
+
+
+# send service message when script was terminated
+def signal_handler(sig, frame):
+    subprocess.run(['python3', 'termination_handler.py'])
+
+
+# register termination signals
+signal.signal(signal.SIGTERM, signal_handler)
+signal.signal(signal.SIGINT, signal_handler)
 
 
 def get_random_time_window(target_time, window) -> int:
