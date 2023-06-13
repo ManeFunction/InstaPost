@@ -1,5 +1,4 @@
 from telethon import TelegramClient, events
-from telethon.sessions import StringSession
 from dotenv import load_dotenv
 import asyncio
 import os
@@ -14,7 +13,7 @@ log_tg_channel = int(os.environ.get("LOG_TG_CHANNEL"))
 
 
 async def send_telegram_message(message):
-    async with TelegramClient(StringSession(session_string), appid, apihash) as client:
+    async with TelegramClient(session_name, appid, apihash) as client:
         await client.send_message(log_tg_channel, message)
 
 
