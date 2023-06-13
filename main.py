@@ -6,7 +6,6 @@ import glob  # A module for working with files
 import random  # A module for generating random numbers
 import time  # A module for working with time
 from telethon import TelegramClient  # A Python library for Telegram API
-from telethon.sessions import StringSession  # A module for working with Telegram sessions
 import asyncio  # A module for asynchronous execution of code
 import signal  # A module for working with system signals
 import subprocess  # A module for working with subprocesses
@@ -27,7 +26,7 @@ login_window = int(os.environ.get("LOGIN_WINDOW"))
 
 tgid = os.environ.get("APPID")
 tghash = os.environ.get("APIHASH")
-tg_session_string = os.environ.get("SESSION_STRING")
+tg_session_name = os.environ.get("SESSION_NAME")
 log_tg_channel = int(os.environ.get("LOG_TG_CHANNEL"))
 
 # Pre-define some variables and methods
@@ -102,12 +101,12 @@ def try_post_image_from(path) -> (str, str):
 
 
 async def send_telegram_message(message):
-    async with TelegramClient(StringSession(tg_session_string), tgid, tghash) as client:
+    async with TelegramClient(tg_session_name, tgid, tghash) as client:
         await client.send_message(log_tg_channel, message)
 
 
 async def send_telegram_file(message, file_path):
-    async with TelegramClient(StringSession(tg_session_string), tgid, tghash) as client:
+    async with TelegramClient(tg_session_name, tgid, tghash) as client:
         await client.send_file(log_tg_channel, file_path, force_document=False, caption=message)
         os.remove(image_path)
 
