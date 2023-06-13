@@ -9,7 +9,7 @@ load_dotenv()
 login = os.environ.get("LOGIN")
 appid = os.environ.get("APPID")
 apihash = os.environ.get("APIHASH")
-session_string = os.environ.get("SESSION_STRING")
+session_name = os.environ.get("SESSION_NAME")
 log_tg_channel = int(os.environ.get("LOG_TG_CHANNEL"))
 
 
