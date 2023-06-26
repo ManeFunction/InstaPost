@@ -121,7 +121,7 @@ def login_to_ig() -> Client:
             client.login(login, password)
             print("Logged in as", login)
             break
-        finally:
+        except:
             lt = get_random_time_window(login_time, login_window)
             print(f"Failed to log in. Trying again in {lt} seconds...")
             time.sleep(lt)
