@@ -1,4 +1,5 @@
-instagrapi==1.17.5
+instagrapi==1.17.10
+Pillow==9.5.0
 Pillow==9.5.0
 python-dotenv==1.0.0
-Telethon==1.26.0
+Telethon==1.28.5

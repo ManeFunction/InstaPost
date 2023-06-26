@@ -8,7 +8,6 @@ import time  # A module for working with time
 from telethon import TelegramClient  # A Python library for Telegram API
 import asyncio  # A module for asynchronous execution of code
 import signal  # A module for working with system signals
-import subprocess  # A module for working with subprocesses
 
 # set up environment
 load_dotenv()
@@ -34,10 +33,14 @@ extensions = ['*.png', '*.jpg', '*.jpeg']
 tags_filename = "tags.txt"
 no_images_message = "No files left. Abort."
 
+terminate_signal_received = False
 
-# send service message when script was terminated
+
+# signal handler for termination signals
 def signal_handler(sig, frame):
-    subprocess.run(['python3', 'termination_handler.py'])
+    global terminate_signal_received
+    print(f"Received signal {sig}! Stopping...")
+    terminate_signal_received = True
 
 
 # register termination signals
@@ -57,7 +60,7 @@ def get_images_at(path) -> list:
     return result
 
 
-def try_post_image_from(path) -> (str, str):
+def try_post_image_from(client, path) -> (str, str):
     # Choosing a random file from the subfolder
     images_list = get_images_at(path)
     image = random.choice(images_list)
@@ -92,7 +95,7 @@ def try_post_image_from(path) -> (str, str):
     caption = ' '.join(split)
 
     # Uploading the file as a post with a caption
-    media = cl.photo_upload(selected_image_path, caption=caption)
+    media = client.photo_upload(selected_image_path, caption=caption)
     media_code = media.dict().get("code")
     url = f"https://www.instagram.com/p/{media_code}/"
     print("Uploaded")
@@ -100,95 +103,126 @@ def try_post_image_from(path) -> (str, str):
     return url, selected_image_path
 
 
-async def send_telegram_message(message):
-    async with TelegramClient(tg_session_name, tgid, tghash) as client:
-        await client.send_message(log_tg_channel, message)
+async def log_to_telegram(client, message):
+    await client.send_message(log_tg_channel, message)
 
 
-async def send_telegram_file(message, file_path):
-    async with TelegramClient(tg_session_name, tgid, tghash) as client:
-        await client.send_file(log_tg_channel, file_path, force_document=False, caption=message)
+async def log_to_telegram(client, message, file_path):
+    await client.send_file(log_tg_channel, file_path, force_document=False, caption=message)
+
+
+def login_to_ig() -> Client:
+    client = Client()
+
+    # Logging in cycle (trying to log in until successful)
+    while True:
+        try:
+            print("Logging in...")
+            client.login(login, password)
+            print("Logged in as", login)
+            break
+        finally:
+            lt = get_random_time_window(login_time, login_window)
+            print(f"Failed to log in. Trying again in {lt} seconds...")
+            time.sleep(lt)
+
+    return client
+
+
+async def select_and_post(igc, tgc):
+    images = get_images_at(images_dir)
+    total = len(images)
+    total_images_left = total - 1
+    print(f"Total number of images left: {total_images_left}")
+
+    # Keep the cycle running even if there are no files in the folder
+    # to prevent painful re-logging operation
+    if total == 0:
+        print(no_images_message)
+        await log_to_telegram(tgc, f"**{login}**: {no_images_message}")
+    else:
+        # Posting image from the root folder
+        post_url, image_path = try_post_image_from(igc, images_dir)
+        await log_to_telegram(tgc,
+                              f"**{login}**: New image was posted!\nImages left: {total_images_left}\n{post_url}",
+                              image_path)
         os.remove(image_path)
 
 
-def log_to_telegram(message):
-    asyncio.run(send_telegram_message(message))
+async def select_and_post_from_subfolders(igc, tgc, subfolders):
+    # Build up the map
+    images_map = {}
+    for subfolder in subfolders:
+        files = get_images_at(subfolder)
+        images_map[subfolder] = len(files)
 
+    # Calculate total number of images left
+    total = sum(images_map.values())
+    total_images_left = total - 1
+    print(f"Total number of images left: {total_images_left}")
 
-def log_to_telegram(message, file_path):
-    asyncio.run(send_telegram_file(message, file_path))
+    # Keep the cycle running even if there are no files in the folder
+    # to prevent painful re-logging operation
+    if total == 0:
+        print(no_images_message)
+        await log_to_telegram(tgc, f"**{login}**: {no_images_message}")
+    else:
+        # Choosing a random subfolder with actual images
+        non_empty_subfolders = [key for key, value in images_map.items() if value != 0]
+        category = random.choice(non_empty_subfolders)
+        category_name = os.path.basename(os.path.normpath(category))
+        images_in_category_left = images_map[category] - 1
+        print("Selected category: ", category_name)
+        print(f"Number of images left in the category: {images_in_category_left}")
 
-
-# Creating an instance of the Client class
-cl = Client()
-
-# Logging in cycle (trying to log in until successful)
-while True:
-    try:
-        print("Logging in...")
-        cl.login(login, password)
-        print("Logged in as", login)
-        break
-    except:
-        t = get_random_time_window(login_time, login_window)
-        print(f"Failed to log in. Trying again in {t} seconds...")
-        time.sleep(t)
+        # Posting image from the selected category
+        post_url, image_path = try_post_image_from(igc, category)
+        await log_to_telegram(tgc,
+                              f"**{login}**: New image was posted!\nCategory: {category_name}\nImages left: {images_in_category_left} ({total_images_left})\n{post_url}",
+                              image_path)
+        os.remove(image_path)
 
 
 # >>> MAIN LOOP <<<
-while True:
-    # Getting the list of subfolders
-    subfolders = [f.path for f in os.scandir(images_dir) if f.is_dir()]
+async def main():
+    global terminate_signal_received
 
-    # One root folder logic
-    if len(subfolders) == 0:
-        images = get_images_at(images_dir)
-        total = len(images)
-        total_images_left = total - 1
-        print(f"Total number of images left: {total_images_left}")
+    # Creating an instance of the Client class
+    ig_client = login_to_ig()
 
-        # Keep the cycle running even if there are no files in the folder
-        # to prevent painful re-logging operation
-        if total == 0:
-            print(no_images_message)
-            log_to_telegram(f"**{login}**: {no_images_message}")
-        else:
-            # Posting image from the root folder
-            post_url, image_path = try_post_image_from(images_dir)
-            log_to_telegram(f"**{login}**: New image was posted!\nImages left: {total_images_left}\n{post_url}", image_path)
+    async with TelegramClient(tg_session_name, tgid, tghash) as tg_client:
+        while True:
+            try:
+                # Getting the list of subfolders
+                subfolders = [f.path for f in os.scandir(images_dir) if f.is_dir()]
 
-    # Subfolders logic
-    else:
-        # Build up the map
-        images_map = {}
-        for subfolder in subfolders:
-            files = get_images_at(subfolder)
-            images_map[subfolder] = len(files)
+                # One root folder logic
+                if len(subfolders) == 0:
+                    await select_and_post(ig_client, tg_client)
+                # Subfolders logic
+                else:
+                    await select_and_post_from_subfolders(ig_client, tg_client, subfolders)
 
-        # Calculate total number of images left
-        total = sum(images_map.values())
-        total_images_left = total - 1
-        print(f"Total number of images left: {total_images_left}")
+                # Waiting for some time (in seconds)
+                t = get_random_time_window(repeat_time, repeat_window)
+                print(f"Waiting {t} seconds...")
 
-        # Keep the cycle running even if there are no files in the folder
-        # to prevent painful re-logging operation
-        if total == 0:
-            print(no_images_message)
-            log_to_telegram(f"**{login}**: {no_images_message}")
-        else:
-            # Choosing a random subfolder with actual images
-            non_empty_subfolders = [key for key, value in images_map.items() if value != 0]
-            category = random.choice(non_empty_subfolders)
-            category_name = os.path.basename(os.path.normpath(category))
-            images_in_category_left = images_map[category] - 1
-            print("Selected category: ", category_name)
-            print(f"Number of images left in the category: {images_in_category_left}")
+                # Run until termination signal is received or an exception occurs
+                while not terminate_signal_received or t > 0:
+                    t -= 0.1
+                    await asyncio.sleep(0.1)
 
-            # Posting image from the selected category
-            post_url, image_path = try_post_image_from(category)
-            log_to_telegram(f"**{login}**: New image was posted!\nCategory: {category_name}\nImages left: {images_in_category_left} ({total_images_left})\n{post_url}", image_path)
+            except asyncio.CancelledError:
+                print("Cancelled!")
+            except Exception as e:
+                print(f"Error: {e}")
+            finally:
+                print("Logging about termination...")
+                if client.is_connected():
+                    await client.send_message(log_tg_channel, f"⛔️ **{login}** was terminated!")
+                else:
+                    print("Can't! Client is not connected!")
 
-    # Waiting for some time (in seconds)
-    t = get_random_time_window(repeat_time, repeat_window)
-    print(f"Waiting {t} seconds...")
-    time.sleep(t)
+
+if __name__ == '__main__':
+    asyncio.run(main())
