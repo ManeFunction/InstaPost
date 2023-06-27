@@ -187,41 +187,44 @@ async def select_and_post_from_subfolders(igc, tgc, subfolders):
 async def main():
     global terminate_signal_received
 
-    # Creating an instance of the Client class
+    # Creating an instances of social network clients
     ig_client = login_to_ig()
 
-    async with TelegramClient(tg_session_name, tgid, tghash) as tg_client:
-        while True:
-            try:
-                # Getting the list of subfolders
-                subfolders = [f.path for f in os.scandir(images_dir) if f.is_dir()]
+    tg_client = TelegramClient(tg_session_name, tgid, tghash)
+    tg_client.start()
 
-                # One root folder logic
-                if len(subfolders) == 0:
-                    await select_and_post(ig_client, tg_client)
-                # Subfolders logic
-                else:
-                    await select_and_post_from_subfolders(ig_client, tg_client, subfolders)
+    while True:
+        try:
+            # Getting the list of subfolders
+            subfolders = [f.path for f in os.scandir(images_dir) if f.is_dir()]
 
-                # Waiting for some time (in seconds)
-                t = get_random_time_window(repeat_time, repeat_window)
-                print(f"Waiting {t} seconds...")
+            # One root folder logic
+            if len(subfolders) == 0:
+                await select_and_post(ig_client, tg_client)
+            # Subfolders logic
+            else:
+                await select_and_post_from_subfolders(ig_client, tg_client, subfolders)
 
-                # Run until termination signal is received or an exception occurs
-                while not terminate_signal_received or t > 0:
-                    t -= 0.1
-                    await asyncio.sleep(0.1)
+            # Waiting for some time (in seconds)
+            t = get_random_time_window(repeat_time, repeat_window)
+            print(f"Waiting {t} seconds...")
 
-            except asyncio.CancelledError:
-                print("Cancelled!")
-            except Exception as e:
-                print(f"Error: {e}")
-            finally:
-                print("Logging about termination...")
-                if client.is_connected():
-                    await client.send_message(log_tg_channel, f"⛔️ **{login}** was terminated!")
-                else:
-                    print("Can't! Client is not connected!")
+            # Run until termination signal is received or an exception occurs
+            while not terminate_signal_received or t > 0:
+                t -= 0.1
+                await asyncio.sleep(0.1)
+
+        except asyncio.CancelledError:
+            print("Cancelled!")
+        except Exception as e:
+            print(f"Error: {e}")
+        finally:
+            print("Logging about termination...")
+            if client.is_connected():
+                await client.send_message(log_tg_channel, f"⛔️ **{login}** was terminated!")
+                tg_client.disconnect()
+            else:
+                print("Can't! Client is not connected!")
 
 
 if __name__ == '__main__':
