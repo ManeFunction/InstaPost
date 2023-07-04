@@ -195,7 +195,7 @@ async def main():
     # Creating an instances of social network clients
     ig_client = login_to_ig()
 
-    if log_to_tg:
+    if log_to_tg is True:
         tg_client = TelegramClient(tg_session_name, tgid, tghash)
         tg_client.start()
     else:
