@@ -140,12 +140,12 @@ async def select_and_post(igc, tgc):
     # to prevent painful re-logging operation
     if total == 0:
         print(no_images_message)
-        if tgc:
+        if tgc is not None:
             await log_to_telegram(tgc, f"**{login}**: {no_images_message}")
     else:
         # Posting image from the root folder
         post_url, image_path = try_post_image_from(igc, images_dir)
-        if tgc:
+        if tgc is not None:
             await log_to_telegram(tgc,
                                   f"**{login}**: New image was posted!\nImages left: {total_images_left}\n{post_url}",
                                   image_path)
@@ -168,7 +168,7 @@ async def select_and_post_from_subfolders(igc, tgc, subfolders):
     # to prevent painful re-logging operation
     if total == 0:
         print(no_images_message)
-        if tgc:
+        if tgc is not None:
             await log_to_telegram(tgc, f"**{login}**: {no_images_message}")
     else:
         # Choosing a random subfolder with actual images
@@ -181,7 +181,7 @@ async def select_and_post_from_subfolders(igc, tgc, subfolders):
 
         # Posting image from the selected category
         post_url, image_path = try_post_image_from(igc, category)
-        if tgc:
+        if tgc is not None:
             await log_to_telegram(tgc,
                                   f"**{login}**: New image was posted!\nCategory: {category_name}\nImages left: {images_in_category_left} ({total_images_left})\n{post_url}",
                                   image_path)
@@ -199,7 +199,7 @@ async def main():
         tg_client = TelegramClient(tg_session_name, tgid, tghash)
         tg_client.start()
     else:
-        tg_client = null
+        tg_client = None
 
     while True:
         try:
@@ -228,8 +228,8 @@ async def main():
             print(f"Error: {e}")
         finally:
             print("Logging about termination...")
-            if tg_client and tg_client.is_connected():
-                await client.send_message(log_tg_channel, f"⛔️ **{login}** was terminated!")
+            if tg_client is not None and tg_client.is_connected():
+                await log_to_tg(tg_client, f"⛔️ **{login}** was terminated!")
                 tg_client.disconnect()
             else:
                 print("Can't! Client is not connected!")
