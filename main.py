@@ -23,6 +23,7 @@ repeat_window = int(os.environ.get("POST_WINDOW"))
 login_time = int(os.environ.get("LOGIN_DELAY"))
 login_window = int(os.environ.get("LOGIN_WINDOW"))
 
+log_to_tg = bool(os.environ.get("LOG_TO_TG"))
 tgid = os.environ.get("APPID")
 tghash = os.environ.get("APIHASH")
 tg_session_name = os.environ.get("SESSION_NAME")
@@ -139,13 +140,15 @@ async def select_and_post(igc, tgc):
     # to prevent painful re-logging operation
     if total == 0:
         print(no_images_message)
-        await log_to_telegram(tgc, f"**{login}**: {no_images_message}")
+        if tgc:
+            await log_to_telegram(tgc, f"**{login}**: {no_images_message}")
     else:
         # Posting image from the root folder
         post_url, image_path = try_post_image_from(igc, images_dir)
-        await log_to_telegram(tgc,
-                              f"**{login}**: New image was posted!\nImages left: {total_images_left}\n{post_url}",
-                              image_path)
+        if tgc:
+            await log_to_telegram(tgc,
+                                  f"**{login}**: New image was posted!\nImages left: {total_images_left}\n{post_url}",
+                                  image_path)
         os.remove(image_path)
 
 
@@ -165,7 +168,8 @@ async def select_and_post_from_subfolders(igc, tgc, subfolders):
     # to prevent painful re-logging operation
     if total == 0:
         print(no_images_message)
-        await log_to_telegram(tgc, f"**{login}**: {no_images_message}")
+        if tgc:
+            await log_to_telegram(tgc, f"**{login}**: {no_images_message}")
     else:
         # Choosing a random subfolder with actual images
         non_empty_subfolders = [key for key, value in images_map.items() if value != 0]
@@ -177,9 +181,10 @@ async def select_and_post_from_subfolders(igc, tgc, subfolders):
 
         # Posting image from the selected category
         post_url, image_path = try_post_image_from(igc, category)
-        await log_to_telegram(tgc,
-                              f"**{login}**: New image was posted!\nCategory: {category_name}\nImages left: {images_in_category_left} ({total_images_left})\n{post_url}",
-                              image_path)
+        if tgc:
+            await log_to_telegram(tgc,
+                                  f"**{login}**: New image was posted!\nCategory: {category_name}\nImages left: {images_in_category_left} ({total_images_left})\n{post_url}",
+                                  image_path)
         os.remove(image_path)
 
 
@@ -190,8 +195,11 @@ async def main():
     # Creating an instances of social network clients
     ig_client = login_to_ig()
 
-    tg_client = TelegramClient(tg_session_name, tgid, tghash)
-    tg_client.start()
+    if log_to_tg:
+        tg_client = TelegramClient(tg_session_name, tgid, tghash)
+        tg_client.start()
+    else:
+        tg_client = null
 
     while True:
         try:
@@ -220,7 +228,7 @@ async def main():
             print(f"Error: {e}")
         finally:
             print("Logging about termination...")
-            if client.is_connected():
+            if tg_client and tg_client.is_connected():
                 await client.send_message(log_tg_channel, f"⛔️ **{login}** was terminated!")
                 tg_client.disconnect()
             else:
