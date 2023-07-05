@@ -2,6 +2,7 @@ from instagrapi import Client  # A Python library for Instagram API
 from PIL import Image  # A Python library for working with images
 from dotenv import load_dotenv  # Parameters environment
 import os  # A module for interacting with the operating system
+import ast  # A module for converting strings to Python objects
 import glob  # A module for working with files
 import random  # A module for generating random numbers
 import time  # A module for working with time
@@ -23,11 +24,13 @@ repeat_window = int(os.environ.get("POST_WINDOW"))
 login_time = int(os.environ.get("LOGIN_DELAY"))
 login_window = int(os.environ.get("LOGIN_WINDOW"))
 
-log_to_tg = bool(os.environ.get("LOG_TO_TG"))
+log_to_tg_str = os.environ.get("LOG_TO_TG")
+log_to_tg = ast.literal_eval(log_to_tg_str) if log_to_tg_str else False
 tgid = os.environ.get("APPID")
 tghash = os.environ.get("APIHASH")
 tg_session_name = os.environ.get("SESSION_NAME")
-log_tg_channel = int(os.environ.get("LOG_TG_CHANNEL"))
+log_tg_channel_str = os.environ.get("LOG_TG_CHANNEL")
+log_tg_channel = int(log_tg_channel_str) if log_tg_channel_str else None
 
 # Pre-define some variables and methods
 extensions = ['*.png', '*.jpg', '*.jpeg']
