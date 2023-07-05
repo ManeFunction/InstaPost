@@ -33,6 +33,7 @@ log_tg_channel_str = os.environ.get("LOG_TG_CHANNEL")
 log_tg_channel = int(log_tg_channel_str) if log_tg_channel_str else None
 
 # Pre-define some variables and methods
+loop_check_time = 60
 extensions = ['*.png', '*.jpg', '*.jpeg']
 tags_filename = "tags.txt"
 no_images_message = "No files left. Abort."
@@ -222,8 +223,8 @@ async def main():
 
             # Run until termination signal is received or an exception occurs
             while not terminate_signal_received or t > 0:
-                t -= 0.1
-                await asyncio.sleep(0.1)
+                t -= loop_check_time
+                await asyncio.sleep(loop_check_time)
 
         except asyncio.CancelledError:
             print("Cancelled!")
