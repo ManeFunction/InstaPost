@@ -205,8 +205,8 @@ async def main():
     else:
         tg_client = None
 
-    while True:
-        try:
+    try:
+        while True:
             # Getting the list of subfolders
             subfolders = [f.path for f in os.scandir(images_dir) if f.is_dir()]
 
@@ -222,21 +222,24 @@ async def main():
             print(f"Waiting {t} seconds...")
 
             # Run until termination signal is received or an exception occurs
-            while not terminate_signal_received or t > 0:
+            while not terminate_signal_received and t > 0:
                 t -= loop_check_time
                 await asyncio.sleep(loop_check_time)
+                
+            if terminate_signal_received:
+                break
 
-        except asyncio.CancelledError:
-            print("Cancelled!")
-        except Exception as e:
-            print(f"Error: {e}")
-        finally:
-            print("Logging about termination...")
-            if tg_client is not None and tg_client.is_connected():
-                await log_to_tg(tg_client, f"⛔️ **{login}** was terminated!")
-                tg_client.disconnect()
-            else:
-                print("Can't! Client is not connected!")
+    except asyncio.CancelledError:
+        print("Cancelled!")
+    except Exception as e:
+        print(f"Error: {e}")
+    finally:
+        print("Logging about termination...")
+        if tg_client is not None and tg_client.is_connected():
+            await log_to_tg(tg_client, f"⛔️ **{login}** was terminated!")
+            tg_client.disconnect()
+        else:
+            print("Can't! Client is not connected!")
 
 
 if __name__ == '__main__':
