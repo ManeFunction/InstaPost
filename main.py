@@ -106,12 +106,12 @@ def try_post_image_from(client, path) -> (str, str):
     return url, selected_image_path
 
 
-async def log_to_telegram(bot, message):
+async def log_message(bot, message):
     if bot is not None:
         await bot.send_message(chat_id=log_tg_channel, text=message, parse_mode=telegram.constants.ParseMode.MARKDOWN_V2)
 
 
-async def log_to_telegram(bot, message, file_path):
+async def log_file(bot, message, file_path):
     if bot is not None:
         await bot.send_photo(chat_id=log_tg_channel, photo=open(file_path, 'rb'), caption=message, parse_mode=telegram.constants.ParseMode.MARKDOWN_V2)
 
@@ -144,13 +144,13 @@ async def select_and_post(ig, tg):
     # to prevent painful re-logging operation
     if total == 0:
         print(no_images_message)
-        await log_to_telegram(tg, f"**{login}**: {no_images_message}")
+        await log_message(tg, f"**{login}**: {no_images_message}")
     else:
         # Posting image from the root folder
         post_url, image_path = try_post_image_from(ig, images_dir)
-        await log_to_telegram(tg,
-                              f"*{login}*: New image was posted!\nImages left: {total_images_left}\n{post_url}",
-                              image_path)
+        await log_file(tg,
+                       f"*{login}*: New image was posted\\!\nImages left: {total_images_left}\n{post_url}",
+                       image_path)
         os.remove(image_path)
 
 
@@ -170,7 +170,7 @@ async def select_and_post_from_subfolders(ig, tg, subfolders):
     # to prevent painful re-logging operation
     if total == 0:
         print(no_images_message)
-        await log_to_telegram(tg, f"*{login}*: {no_images_message}")
+        await log_message(tg, f"*{login}*: {no_images_message}")
     else:
         # Choosing a random subfolder with actual images
         non_empty_subfolders = [key for key, value in images_map.items() if value != 0]
@@ -182,9 +182,9 @@ async def select_and_post_from_subfolders(ig, tg, subfolders):
 
         # Posting image from the selected category
         post_url, image_path = try_post_image_from(ig, category)
-        await log_to_telegram(tg,
-                              f"*{login}*: New image was posted!\nCategory: {category_name}\nImages left: {images_in_category_left} ({total_images_left})\n{post_url}",
-                              image_path)
+        await log_file(tg,
+                       f"*{login}*: New image was posted\\!\nCategory: {category_name}\nImages left: {images_in_category_left} ({total_images_left})\n{post_url}",
+                       image_path)
         os.remove(image_path)
 
 
@@ -226,7 +226,7 @@ async def main():
         print(f"Error: {e}")
     finally:
         print("Termination...")
-        await log_to_telegram(tg_bot, f"⛔️ *{login}* was terminated!")
+        await log_message(tg_bot, f"⛔️ *{login}* was terminated\\!")
 
 
 if __name__ == '__main__':
