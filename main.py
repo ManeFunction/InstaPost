@@ -183,7 +183,7 @@ async def select_and_post_from_subfolders(ig, tg, subfolders):
         # Posting image from the selected category
         post_url, image_path = try_post_image_from(ig, category)
         await log_file(tg,
-                       f"*{login}*: New image was posted\\!\nCategory: {category_name}\nImages left: {images_in_category_left} ({total_images_left})\n{post_url}",
+                       f"*{login}*: New image was posted\\!\nCategory: {category_name}\nImages left: {images_in_category_left} \\({total_images_left}\\)\n{post_url}",
                        image_path)
         os.remove(image_path)
 
