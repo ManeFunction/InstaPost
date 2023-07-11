@@ -23,15 +23,15 @@ repeat_time = int(os.environ.get("POST_DELAY"))
 repeat_window = int(os.environ.get("POST_WINDOW"))
 login_time = int(os.environ.get("LOGIN_DELAY"))
 login_window = int(os.environ.get("LOGIN_WINDOW"))
+loop_time = int(os.environ.get("LOOP_TIME"))
 
 log_to_tg_str = os.environ.get("LOG_TO_TG")
+bot_token = os.environ.get("BOT_TOKEN")
 log_to_tg = ast.literal_eval(log_to_tg_str) if log_to_tg_str else False
 log_tg_channel_str = os.environ.get("LOG_TG_CHANNEL")
 log_tg_channel = int(log_tg_channel_str) if log_tg_channel_str else None
-bot_token = os.environ.get("BOT_TOKEN")
 
 # Pre-define some variables and methods
-loop_check_time = 60
 extensions = ['*.png', '*.jpg', '*.jpeg']
 tags_filename = "tags.txt"
 no_images_message = "No files left. Abort."
@@ -107,11 +107,13 @@ def try_post_image_from(client, path) -> (str, str):
 
 
 async def log_to_telegram(bot, message):
-    await bot.send_message(chat_id=log_tg_channel, text=message)
+    if bot is not None:
+        await bot.send_message(chat_id=log_tg_channel, text=message)
 
 
 async def log_to_telegram(bot, message, file_path):
-    await bot.send_photo(chat_id=log_tg_channel, photo=open(file_path, 'rb'), caption=message)
+    if bot is not None:
+        await bot.send_photo(chat_id=log_tg_channel, photo=open(file_path, 'rb'), caption=message)
 
 
 def login_to_ig() -> Client:
@@ -142,15 +144,13 @@ async def select_and_post(ig, tg):
     # to prevent painful re-logging operation
     if total == 0:
         print(no_images_message)
-        if tg is not None:
-            await log_to_telegram(tg, f"**{login}**: {no_images_message}")
+        await log_to_telegram(tg, f"**{login}**: {no_images_message}")
     else:
         # Posting image from the root folder
         post_url, image_path = try_post_image_from(ig, images_dir)
-        if tg is not None:
-            await log_to_telegram(tg,
-                                  f"**{login}**: New image was posted!\nImages left: {total_images_left}\n{post_url}",
-                                  image_path)
+        await log_to_telegram(tg,
+                              f"**{login}**: New image was posted!\nImages left: {total_images_left}\n{post_url}",
+                              image_path)
         os.remove(image_path)
 
 
@@ -170,8 +170,7 @@ async def select_and_post_from_subfolders(ig, tg, subfolders):
     # to prevent painful re-logging operation
     if total == 0:
         print(no_images_message)
-        if tg is not None:
-            await log_to_telegram(tg, f"**{login}**: {no_images_message}")
+        await log_to_telegram(tg, f"**{login}**: {no_images_message}")
     else:
         # Choosing a random subfolder with actual images
         non_empty_subfolders = [key for key, value in images_map.items() if value != 0]
@@ -183,10 +182,9 @@ async def select_and_post_from_subfolders(ig, tg, subfolders):
 
         # Posting image from the selected category
         post_url, image_path = try_post_image_from(ig, category)
-        if tg is not None:
-            await log_to_telegram(tg,
-                                  f"**{login}**: New image was posted!\nCategory: {category_name}\nImages left: {images_in_category_left} ({total_images_left})\n{post_url}",
-                                  image_path)
+        await log_to_telegram(tg,
+                              f"**{login}**: New image was posted!\nCategory: {category_name}\nImages left: {images_in_category_left} ({total_images_left})\n{post_url}",
+                              image_path)
         os.remove(image_path)
 
 
@@ -216,8 +214,8 @@ async def main():
 
             # Run until termination signal is received or an exception occurs
             while not terminate_signal_received and t > 0:
-                t -= loop_check_time
-                await asyncio.sleep(loop_check_time)
+                t -= loop_time
+                await asyncio.sleep(loop_time)
                 
             if terminate_signal_received:
                 break
@@ -227,11 +225,8 @@ async def main():
     except Exception as e:
         print(f"Error: {e}")
     finally:
-        print("Logging about termination...")
-        if tg_bot is not None:
-            await log_to_tg(tg_bot, f"⛔️ **{login}** was terminated!")
-        else:
-            print("Can't! Client is not connected!")
+        print("Termination...")
+        await log_to_tg(tg_bot, f"⛔️ **{login}** was terminated!")
 
 
 if __name__ == '__main__':
