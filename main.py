@@ -23,7 +23,7 @@ repeat_time = int(os.environ.get("POST_DELAY"))
 repeat_window = int(os.environ.get("POST_WINDOW"))
 login_time = int(os.environ.get("LOGIN_DELAY"))
 login_window = int(os.environ.get("LOGIN_WINDOW"))
-loop_time = int(os.environ.get("LOOP_TIME"))
+loop_time = float(os.environ.get("LOOP_TIME"))
 
 log_to_tg_str = os.environ.get("LOG_TO_TG")
 bot_token = os.environ.get("BOT_TOKEN")
