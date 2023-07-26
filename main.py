@@ -24,6 +24,7 @@ repeat_window = int(os.environ.get("POST_WINDOW"))
 login_time = int(os.environ.get("LOGIN_DELAY"))
 login_window = int(os.environ.get("LOGIN_WINDOW"))
 loop_time = float(os.environ.get("LOOP_TIME"))
+post_story_every = int(os.environ.get("POST_STORY_EVERY"))
 
 log_to_tg_str = os.environ.get("LOG_TO_TG")
 bot_token = os.environ.get("BOT_TOKEN")
@@ -34,7 +35,8 @@ log_tg_channel = int(log_tg_channel_str) if log_tg_channel_str else None
 # Pre-define some variables and methods
 extensions = ['*.png', '*.jpg', '*.jpeg']
 tags_filename = "tags.txt"
-no_images_message = "No files left. Abort."
+stories_dir = os.path.join(images_dir, "!STORIES")
+no_images_message = "No files left. Skipping iteration..."
 
 terminate_signal_received = False
 
@@ -63,7 +65,36 @@ def get_images_at(path) -> list:
     return result
 
 
-def try_post_image_from(client, path) -> (str, str):
+def convert_to_jpg(path):
+    print("Converting PNG to JPG...")
+    png_image = Image.open(path)
+    rgb_image = png_image.convert('RGB')
+    output_file_path = path[:-4] + ".jpg"
+    rgb_image.save(output_file_path, quality=100)
+    os.remove(path)
+    print("Converted to JPG")
+
+    return output_file_path
+
+
+def get_hashtags(path) -> str:
+    result = hashtags
+    tags_path = os.path.join(path, tags_filename)
+    if os.path.isfile(tags_path):
+        with open(tags_path, "r") as f:
+            content = f.read()
+            result += ' '
+            result += content
+
+    # randomize hashtags to prevent ig auto-posting detection
+    split = result.split(' ')
+    random.shuffle(split)
+    result = ' '.join(split)
+
+    return result
+
+
+def try_post_image_from(client, path, is_story) -> (str, str):
     # Choosing a random file from the subfolder
     images_list = get_images_at(path)
     image = random.choice(images_list)
@@ -74,33 +105,19 @@ def try_post_image_from(client, path) -> (str, str):
 
     # If the file is PNG, convert it to JPG
     if image.endswith(".png"):
-        print("Converting PNG to JPG...")
-        png_image = Image.open(selected_image_path)
-        rgb_image = png_image.convert('RGB')
-        output_file_path = selected_image_path[:-4] + ".jpg"
-        rgb_image.save(output_file_path, quality=100)
-        os.remove(selected_image_path)
-        selected_image_path = output_file_path
-        print("Converted to JPG")
+        selected_image_path = convert_to_jpg(selected_image_path)
 
     # Manage hashtags
-    caption = hashtags
-    tags_path = os.path.join(path, tags_filename)
-    if os.path.isfile(tags_path):
-        with open(tags_path, "r") as f:
-            content = f.read()
-            caption += ' '
-            caption += content
-
-    # randomize hashtags to prevent instagram auto-posting detection
-    split = caption.split(' ')
-    random.shuffle(split)
-    caption = ' '.join(split)
+    caption = get_hashtags(path) if is_story else None
 
     # Uploading the file as a post with a caption
-    media = client.photo_upload(selected_image_path, caption=caption)
-    media_code = media.dict().get("code")
-    url = f"https://www.instagram.com/p/{media_code}/"
+    if is_story:
+        story = client.photo_upload_to_story(selected_image_path)
+        url = f"https://www.instagram.com/stories/{login}/{story.pk}/"
+    else:
+        media = client.photo_upload(selected_image_path, caption=caption)
+        media_code = media.dict().get("code")
+        url = f"https://www.instagram.com/p/{media_code}/"
     print("Uploaded")
 
     return url, selected_image_path
@@ -128,28 +145,30 @@ def login_to_ig() -> Client:
             break
         except:
             lt = get_random_time_window(login_time, login_window)
-            print(f"Failed to log in. Trying again in {lt} seconds...")
+            print(f"⛔️ Failed to log in. Trying again in {lt} seconds...")
             time.sleep(lt)
 
     return client
 
 
-async def select_and_post(ig, tg):
-    images = get_images_at(images_dir)
+async def select_and_post(ig, tg, is_story):
+    directory = stories_dir if is_story else images_dir
+    images = get_images_at(directory)
     total = len(images)
-    total_images_left = total - 1
+    total_images_left = max(0, total - 1)
     print(f"Total number of images left: {total_images_left}")
 
     # Keep the cycle running even if there are no files in the folder
     # to prevent painful re-logging operation
     if total == 0:
         print(no_images_message)
-        await log_message(tg, f"<b>{login}</b>: {no_images_message}")
+        await log_message(tg, f"⚠️ <b>{login}</b>: {no_images_message}")
     else:
         # Posting image from the root folder
-        post_url, image_path = try_post_image_from(ig, images_dir)
+        post_url, image_path = try_post_image_from(ig, directory, is_story)
+        post_type = "story" if is_story else "picture"
         await log_file(tg,
-                       f"<b>{login}</b>: New image was posted!\nImages left: {total_images_left}\n{post_url}",
+                       f"<b>{login}</b>: New {post_type} was posted!\nImages left: {total_images_left}\n{post_url}",
                        image_path)
         os.remove(image_path)
 
@@ -163,7 +182,7 @@ async def select_and_post_from_subfolders(ig, tg, subfolders):
 
     # Calculate total number of images left
     total = sum(images_map.values())
-    total_images_left = total - 1
+    total_images_left = max(0, total - 1)
     print(f"Total number of images left: {total_images_left}")
 
     # Keep the cycle running even if there are no files in the folder
@@ -181,7 +200,7 @@ async def select_and_post_from_subfolders(ig, tg, subfolders):
         print(f"Number of images left in the category: {images_in_category_left}")
 
         # Posting image from the selected category
-        post_url, image_path = try_post_image_from(ig, category)
+        post_url, image_path = try_post_image_from(ig, category, False)
         await log_file(tg,
                        f"<b>{login}</b>: New image was posted!\nCategory: {category_name}\nImages left: {images_in_category_left} ({total_images_left})\n{post_url}",
                        image_path)
@@ -191,6 +210,7 @@ async def select_and_post_from_subfolders(ig, tg, subfolders):
 # >>> MAIN LOOP <<<
 async def main():
     global terminate_signal_received
+    story_counter = 0 if post_story_every > 0 else -1
 
     # Creating an instances of social network clients
     ig_client = login_to_ig()
@@ -199,14 +219,24 @@ async def main():
     try:
         while True:
             # Getting the list of subfolders
-            subfolders = [f.path for f in os.scandir(images_dir) if f.is_dir()]
+            subfolders = [f.path for f in os.scandir(images_dir) if f.is_dir() and not f.name.startswith('!')]
 
             # One root folder logic
+            print("Posting a picture...")
             if len(subfolders) == 0:
-                await select_and_post(ig_client, tg_bot)
+                await select_and_post(ig_client, tg_bot, False)
             # Subfolders logic
             else:
                 await select_and_post_from_subfolders(ig_client, tg_bot, subfolders)
+
+            # Posting stories
+            if os.path.isdir(stories_dir):
+                print("Posting a story...")
+                if story_counter > 0:
+                    story_counter -= 1
+                elif story_counter == 0:
+                    await select_and_post(ig_client, tg_bot, True)
+                    story_counter = post_story_every
 
             # Waiting for some time (in seconds)
             t = get_random_time_window(repeat_time, repeat_window)
