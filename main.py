@@ -210,7 +210,7 @@ async def select_and_post_from_subfolders(ig, tg, subfolders):
 # >>> MAIN LOOP <<<
 async def main():
     global terminate_signal_received
-    story_counter = 0 if post_story_every > 0 else -1
+    story_counter = 1 if post_story_every > 0 else -1
 
     # Creating an instances of social network clients
     ig_client = login_to_ig()
@@ -234,6 +234,7 @@ async def main():
                 print("Posting a story...")
                 if story_counter > 1:
                     story_counter -= 1
+                elif story_counter > 0:
                     await select_and_post(ig_client, tg_bot, True)
                     story_counter = post_story_every
 
