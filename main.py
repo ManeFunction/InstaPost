@@ -232,9 +232,8 @@ async def main():
             # Posting stories
             if os.path.isdir(stories_dir):
                 print("Posting a story...")
-                if story_counter > 0:
+                if story_counter > 1:
                     story_counter -= 1
-                elif story_counter == 0:
                     await select_and_post(ig_client, tg_bot, True)
                     story_counter = post_story_every
 
