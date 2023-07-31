@@ -21,8 +21,6 @@ images_dir = os.environ.get("IMAGES_PATH")
 
 repeat_time = int(os.environ.get("POST_DELAY"))
 repeat_window = int(os.environ.get("POST_WINDOW"))
-login_time = int(os.environ.get("LOGIN_DELAY"))
-login_window = int(os.environ.get("LOGIN_WINDOW"))
 loop_time = float(os.environ.get("LOOP_TIME"))
 post_story_every = int(os.environ.get("POST_STORY_EVERY"))
 
@@ -136,17 +134,13 @@ async def log_file(bot, message, file_path):
 def login_to_ig() -> Client:
     client = Client()
 
-    # Logging in cycle (trying to log in until successful)
-    while True:
-        try:
-            print("Logging in...")
-            client.login(login, password)
-            print("Logged in as", login)
-            break
-        except:
-            lt = get_random_time_window(login_time, login_window)
-            print(f"⛔️ Failed to log in. Trying again in {lt} seconds...")
-            time.sleep(lt)
+    try:
+        print("Logging in...")
+        client.login(login, password)
+        print("Logged in as", login)
+    except:
+        print(f"⛔️ Failed to log in. Terminating...")
+        exit()
 
     return client
 
