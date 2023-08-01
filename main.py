@@ -138,8 +138,9 @@ def login_to_ig() -> Client:
         print("Logging in...")
         client.login(login, password)
         print("Logged in as", login)
-    except:
-        print(f"⛔️ Failed to log in. Terminating...")
+    except Exception as e:
+        print(e)
+        print("⛔️ Failed to log in. Terminating...")
         exit()
 
     return client
