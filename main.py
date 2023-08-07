@@ -5,7 +5,6 @@ import os  # A module for interacting with the operating system
 import ast  # A module for converting strings to Python objects
 import glob  # A module for working with files
 import random  # A module for generating random numbers
-import time  # A module for working with time
 import telegram  # A Python library for Telegram API
 import asyncio  # A module for asynchronous execution of code
 import signal  # A module for working with system signals
@@ -24,8 +23,8 @@ repeat_window = int(os.environ.get("POST_WINDOW"))
 loop_time = float(os.environ.get("LOOP_TIME"))
 post_story_every = int(os.environ.get("POST_STORY_EVERY"))
 
-log_to_tg_str = os.environ.get("LOG_TO_TG")
 bot_token = os.environ.get("BOT_TOKEN")
+log_to_tg_str = os.environ.get("LOG_TO_TG")
 log_to_tg = ast.literal_eval(log_to_tg_str) if log_to_tg_str else False
 log_tg_channel_str = os.environ.get("LOG_TG_CHANNEL")
 log_tg_channel = int(log_tg_channel_str) if log_tg_channel_str else None
