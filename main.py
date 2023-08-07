@@ -6,6 +6,7 @@ import ast  # A module for converting strings to Python objects
 import glob  # A module for working with files
 import random  # A module for generating random numbers
 import telegram  # A Python library for Telegram API
+import pyotp  # A Python library for generating OTP codes
 import asyncio  # A module for asynchronous execution of code
 import signal  # A module for working with system signals
 
@@ -15,6 +16,7 @@ load_dotenv()
 # load config
 login = os.environ.get("LOGIN")
 password = os.environ.get("PASS")
+secret = os.environ.get("SECRET")
 hashtags = os.environ.get("HASHTAGS")
 images_dir = os.environ.get("IMAGES_PATH")
 
@@ -135,7 +137,9 @@ def login_to_ig() -> Client:
 
     try:
         print("Logging in...")
-        client.login(login, password)
+        totp = pyotp.TOTP(secret)
+        code = totp.now()
+        client.login(login, password, verification_code=code)
         print("Logged in as", login)
     except Exception as e:
         print(e)
